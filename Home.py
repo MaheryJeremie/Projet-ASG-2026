@@ -1,10 +1,9 @@
 """
 ASG-2026 : Pipeline d'Assemblage De Novo
-Application principale Streamlit
 """
 import streamlit as st
 
-from aff.ui import inject_styles, page_header, module_card
+from aff.ui import inject_styles, page_header, module_card, sidebar_brand, sidebar_section
 
 st.set_page_config(
     page_title="ASG-2026 | Pipeline d'Assemblage De Novo",
@@ -14,22 +13,25 @@ st.set_page_config(
 
 inject_styles()
 
+with st.sidebar:
+    sidebar_brand()
+    sidebar_section("Navigation")
+    st.caption("Choisir un lot dans le menu.")
+
 page_header(
-    "ASG-2026 — Pipeline d'assemblage de novo",
-    "Reconstruction de séquences génomiques à partir de reads courts. "
-    "Trois étapes : ingestion et contrôle qualité, alignement LCS, assemblage par graphe de de Bruijn implicite.",
+    "ASG-2026 — Assemblage de novo",
+    "Trois lots : ingestion, alignement LCS, assemblage par filtre de Bloom.",
 )
-st.divider()
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown(
         module_card(
-            1,
-            "Ingestion et qualité",
-            "Lecture FASTQ/FASTA, comptage des k-mers, histogramme de fréquence, estimation du taux d'erreur.",
-            ["FASTQ → FASTA", "k-mers", "Phred"],
+            1, "Ingestion et qualité",
+            "Lecture FASTQ, histogramme des k-mers, conversion FASTA.",
+            ["FASTQ", "k-mers", "Phred"],
+            lot=1,
         ),
         unsafe_allow_html=True,
     )
@@ -37,10 +39,10 @@ with col1:
 with col2:
     st.markdown(
         module_card(
-            2,
-            "Alignement LCS",
-            "Plus Longue Sous-Séquence Commune entre deux reads, visualisation du chevauchement.",
-            ["LCS O(n²)", "chevauchement", "matrice DP"],
+            2, "Alignement LCS",
+            "Plus Longue Sous-Séquence Commune, matrice de programmation dynamique.",
+            ["LCS", "DP", "chevauchement"],
+            lot=2,
         ),
         unsafe_allow_html=True,
     )
@@ -48,47 +50,14 @@ with col2:
 with col3:
     st.markdown(
         module_card(
-            3,
-            "Assemblage Bloom",
-            "Filtre de Bloom et traversée du graphe de de Bruijn implicite (approche Minia 2).",
-            ["Bloom filter", "de Bruijn", "contigs"],
+            3, "Assemblage Bloom",
+            "Filtre de Bloom, graphe de de Bruijn implicite, contigs.",
+            ["Bloom", "de Bruijn", "contigs"],
+            lot=3,
         ),
         unsafe_allow_html=True,
     )
 
-st.divider()
-
-st.markdown("#### Architecture du pipeline")
 st.code("""
-Fichiers FASTQ/FASTA
-        │
-        ▼
-┌───────────────────┐
-│  Lot 1 : Ingestion │  → k-mer counting → histogramme fréquence → seuil "solide"
-│  & Contrôle Qualité│
-└─────────┬─────────┘
-          │  séquences filtrées
-          ▼
-┌───────────────────┐
-│  Lot 2 : Alignement│  → matrice LCS O(n×m) → score + position chevauchement
-│  Programmation Dyn.│
-└─────────┬─────────┘
-          │  validation locale
-          ▼
-┌───────────────────┐
-│  Lot 3 : Assemblage│  → Bloom Filter (k-mers solides)
-│  De Bruijn Implicite│  → Traversée on-the-fly → CONTIGS
-└───────────────────┘
+FASTQ  →  Lot 1 (k-mers, qualité)  →  Lot 2 (LCS)  →  Lot 3 (Bloom, contigs)
 """, language="text")
-
-st.info("Les trois modules sont accessibles dans le menu latéral.")
-
-with st.expander("Jeu de test (toy dataset)"):
-    st.markdown("""
-    Chaque module inclut un jeu de test synthétique : séquence de référence d'environ 500 bp,
-    10 000 reads simulés, taux d'erreur 1 %.
-
-    **Validation** : la séquence reconstruite doit atteindre une identité ≥ 98 % par rapport à la cible.
-
-    Référence : fragment synthétique du gène Spike d'un coronavirus fictif.
-    """)
